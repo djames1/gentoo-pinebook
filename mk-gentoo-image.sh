@@ -5,8 +5,8 @@ set -x # Echo each command
 
 # Change to match latest values
 ARCH_IMAGE_VERSION="20190112"
-VOID_LOCAL_ROOTFS_VERSION="20190215"
-VOID_REMOTE_ROOTFS_VERSION="20181111"
+GENTOO_LOCAL_ROOTFS_VERSION="20190215"
+GENTOO_REMOTE_ROOTFS_VERSION="20190115"
 
 # Use anarsoul's Arch Linux image to extract kernel + uboot
 ARCH_IMAGE_NAME="archlinux-xfce-pine64-${ARCH_IMAGE_VERSION}.img"
@@ -19,30 +19,30 @@ if [ ! -f "$ARCH_IMAGE_NAME" ]; then
   xz --decompress ${ARCH_IMAGE_NAME}.xz
 fi
 
-# Use locally built Platform/Root FS if available else fallback to void supplied Root FS.
-VOID_PLATFORMFS_NAME="void-pine64-A64-PLATFORMFS-${VOID_LOCAL_ROOTFS_VERSION}.tar.xz"
-VOID_LOCAL_ROOTFS_NAME="void-aarch64-ROOTFS-${VOID_LOCAL_ROOTFS_VERSION}.tar.xz"
-VOID_REMOTE_ROOTFS_NAME="void-aarch64-ROOTFS-${VOID_REMOTE_ROOTFS_VERSION}.tar.xz"
-VOID_ROOTFS_URL="https://alpha.de.repo.voidlinux.org/live/current/${VOID_REMOTE_ROOTFS_NAME}"
+# Use locally built Platform/Root FS if available else fallback to gentoo supplied Root FS.
+GENTOO_PLATFORMFS_NAME="gentoo-pinebook-A64-PLATFORMFS-${GENTOO_LOCAL_ROOTFS_VERSION}.tar.xz"
+GENTOO_LOCAL_ROOTFS_NAME="gentoo-aarch64-ROOTFS-${GENTOO_LOCAL_ROOTFS_VERSION}.tar.xz"
+GENTOO_REMOTE_ROOTFS_NAME="stage3-arm64-${GENTOO_REMOTE_ROOTFS_VERSION}.tar.bz2"
+GENTOO_ROOTFS_URL="https://gentoo.osuosl.org/experimental/arm64/${GENTOO_REMOTE_ROOTFS_NAME}"
 
-if [ -f "$VOID_PLATFORMFS_NAME" ]; then
+if [ -f "$GENTOO_PLATFORMFS_NAME" ]; then
   echo "Platform FS found. Using it over Root FS."
-  VOID_ROOTFS_NAME="$VOID_PLATFORMFS_NAME"
-elif [ -f "$VOID_LOCAL_ROOTFS_NAME" ]; then
+  GENTOO_ROOTFS_NAME="$GENTOO_PLATFORMFS_NAME"
+elif [ -f "$GENTOO_LOCAL_ROOTFS_NAME" ]; then
   echo "Root FS found. Using local copy."
-  VOID_ROOTFS_NAME="$VOID_LOCAL_ROOTFS_NAME"
+  GENTOO_ROOTFS_NAME="$GENTOO_LOCAL_ROOTFS_NAME"
 else
-    if [ ! -f "$VOID_REMOTE_ROOTFS_NAME" ]; then
-      echo "Downloading Void Linux Root FS from Void Servers."
-      wget "$VOID_ROOTFS_URL" 
+    if [ ! -f "$GENTOO_REMOTE_ROOTFS_NAME" ]; then
+      echo "Downloading Gentoo Linux Root FS from Gentoo Servers."
+      wget "$GENTOO_ROOTFS_URL" 
     fi
-    VOID_ROOTFS_NAME="$VOID_REMOTE_ROOTFS_NAME"
+    GENTOO_ROOTFS_NAME="$GENTOO_REMOTE_ROOTFS_NAME"
 fi
 
 
-# This will be our void image 
-IMAGE_NAME="${1:-void-pine64-A64plus.img}"
-BOOTLOADER="u-boot-sunxi-with-spl-pine64.bin"
+# This will be our gentoo image 
+IMAGE_NAME="${1:-gentoo-pinebook.img}"
+BOOTLOADER="u-boot-sunxi-with-spl-pinebook.bin"
 IMAGE_SIZE=4096M # 4 GB
 PART_POSITION=20480 # K
 FAT_SIZE=100 #M
@@ -109,11 +109,11 @@ sleep 2
 mkdir -p sdcard/{boot,root}
 #mount -t vfat /dev/loop0p1 ./sdcard/boot # Not Needed
 mount  /dev/loop0p3 ./sdcard/root
-# Extract void ROOTFS
-tar -C sdcard/root -Jpxf ${VOID_ROOTFS_NAME}
+# Extract gentoo ROOTFS
+tar -C sdcard/root -jpxf ${GENTOO_ROOTFS_NAME}
 sleep 2
 
-# Copy Kernel + Uboot from Arch Image to Void image
+# Copy Kernel + Uboot from Arch Image to Gentoo image
 rm -rf sdcard/root/boot
 cp -a arch/root/boot sdcard/root/.
 cp -a arch/root/lib/modules sdcard/root/lib/.
